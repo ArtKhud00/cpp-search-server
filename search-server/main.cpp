@@ -70,14 +70,10 @@ public:
         int words_size = static_cast<int>(words.size());
 
         if (!words.empty()) {
+            double TF = 1.0 / words_size;
             for (const string& word : words) {
                 if (!stop_words_.count(word)) {
-                    int word_count = count_if(words.begin(), words.end(),
-                        [&word](const string& str) {
-                            return word == str;
-                        });
-                    double TF = (double)word_count / words_size;
-                    word_to_document_freqs_[word].insert({ document_id,TF });
+                    word_to_document_freqs_[word][document_id] += TF;
                 }
             }
             ++document_count_;
@@ -163,7 +159,7 @@ private:
 
             if (word_to_document_freqs_.count(word) != 0) {
                 int size = word_to_document_freqs_.at(word).size();
-                double IDF = (double)document_count_ / size;
+                double IDF = static_cast<double>(document_count_) / size;
                 IDF = log(IDF);
                 for (const auto& [id, TF] : word_to_document_freqs_.at(word)) {
                     document_to_relevance[id] += IDF * TF;
