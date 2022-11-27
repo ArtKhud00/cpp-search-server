@@ -1,11 +1,11 @@
 
-// “ест провер€ет, что поискова€ система исключает стоп-слова при добавлении документов
+// The test checks that the search engine excludes stop words when adding documents
 void TestExcludeStopWordsFromAddedDocumentContent() {
     const int doc_id = 42;
     const string content = "cat in the city"s;
     const vector<int> ratings = { 1, 2, 3 };
-    // —начала убеждаемс€, что поиск слова, не вход€щего в список стоп-слов,
-    // находит нужный документ
+    // First, make sure that searching for a word 
+    // that is not on the stopword list finds the right document
     {
         SearchServer server;
         server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
@@ -14,8 +14,8 @@ void TestExcludeStopWordsFromAddedDocumentContent() {
         const Document& doc0 = found_docs[0];
         ASSERT_EQUAL(doc0.id, doc_id);
     }
-    // «атем убеждаемс€, что поиск этого же слова, вход€щего в список стоп-слов,
-    // возвращает пустой результат
+    // Then we make sure that the search for the same word included in the list of stop words 
+    // returns an empty result
     {
         SearchServer server;
         server.SetStopWords("in the"s);
@@ -24,7 +24,7 @@ void TestExcludeStopWordsFromAddedDocumentContent() {
     }
 }
 
-//“ест провер€ет, что поискова€ система исключает документы, содержащие минус-слова
+//The test checks that the search engine excludes documents containing minus - words
 void TestExcludeDocumentsFromResultWithMinusWords() {
     SearchServer server;
     int doc1id, doc2id;
@@ -32,12 +32,12 @@ void TestExcludeDocumentsFromResultWithMinusWords() {
     doc2id = 42;
     server.AddDocument(doc1id, "white cat and fashionable collar"s, DocumentStatus::ACTUAL, { 8, -3 });
     server.AddDocument(doc2id, "fluffy cat fluffy tail"s, DocumentStatus::ACTUAL, { 7, 2, 7 });
-    //провер€ем без учета минус-слов
+    //check without minus - words
     {
         const auto found_docs = server.FindTopDocuments("fluffy groomed cat"s);
         ASSERT_EQUAL(found_docs.size(), 2);
     }
-    //включаем в запрос минус-слово
+    //include a minus - word in the query
     {
         const auto found_docs = server.FindTopDocuments("-fluffy groomed cat"s);
         ASSERT_EQUAL(found_docs.size(), 1);
@@ -46,7 +46,7 @@ void TestExcludeDocumentsFromResultWithMinusWords() {
     }
 }
 
-//“ест соответстви€ документов поисковому запросу
+//Search query compliance test
 void TestMatchingDocuments() {
     SearchServer server;
     int doc1id, doc2id;
@@ -64,7 +64,7 @@ void TestMatchingDocuments() {
     }
 }
 
-//“ест сортировки найденных документов по релевантности
+//Test for sorting found documents by relevance
 void TestSortingByRelevance() {
     SearchServer server;
     int doc1id, doc2id, doc3id;
@@ -80,7 +80,7 @@ void TestSortingByRelevance() {
         found_docs[1].relevance > found_docs[2].relevance, "The order of relevances is incorrect"s);
 }
 
-//“ест вычислени€ рейтингов документов
+//Document rating calculation test
 void TestCalcAvgRating() {
     const int doc_id = 42;
     const string content = "cat in the city"s;
@@ -97,7 +97,7 @@ void TestCalcAvgRating() {
     ASSERT_EQUAL_HINT(doc0.rating, ratting, "The rating was calculated incorrectly");
 }
 
-//“ест работы пользовательского предиката
+//User predicate test
 void TestUserPredicate() {
     SearchServer search_server;
     search_server.SetStopWords("and in on"s);
@@ -129,7 +129,7 @@ void TestUserPredicate() {
 
 }
 
-//“ест поиска документов заданного статуса
+//Test of searching for documents of a given status
 void TestSearchExactStatus() {
     string query = "fluffy groomed cat"s;
     SearchServer search_server;
@@ -156,7 +156,7 @@ void TestSearchExactStatus() {
     }
 }
 
-//“ест корректности расчета релевантности найденных документов
+//Test of the correctness of the calculation of the relevance of the found documents
 void TestCalcRelevance() {
     string query = "fluffy groomed cat"s;
     SearchServer search_server;
@@ -165,29 +165,29 @@ void TestCalcRelevance() {
     search_server.AddDocument(2, "groomed dog highlighted eyes"s, DocumentStatus::ACTUAL, { 5, -12, 2, 1 });
     const auto found_docs = search_server.FindTopDocuments(query);
 
-    //—делаем расчеты релевантности вручную
-    //–ассчитаем IDF дл€ каждого слова запроса
+    //Make calculations of relevance manually
+    //Calculate IDF for each query word
     double IDF_fluffy = log(static_cast<double>(3) / 1);
     double IDF_groomed = log(static_cast<double>(3) / 2);
     double IDF_cat = log(static_cast<double>(3) / 2);
-    //–ассчитаем TF дл€ каждого слова запроса в документах
+    //Calculate TF for each query word in documents
     double TF_fluffy_doc0 = 2.0 / 4, TF_groomed_doc0 = 0.0 / 4, TF_cat_doc0 = 1.0 / 4;
     double TF_fluffy_doc1 = 0.0 / 6, TF_groomed_doc1 = 1.0 / 6, TF_cat_doc1 = 1.0 / 6;
     double TF_fluffy_doc2 = 0.0 / 4, TF_groomed_doc2 = 1.0 / 4, TF_cat_doc2 = 0.0 / 4;
-    //–ассчитаем итоговую релевантность дл€ каждого документа
+    //Calculate the final relevance for each document
     double calcrel_doc0 = IDF_fluffy * TF_fluffy_doc0 + IDF_groomed * TF_groomed_doc0
         + IDF_cat * TF_cat_doc0;
     double calcrel_doc1 = IDF_fluffy * TF_fluffy_doc1 + IDF_groomed * TF_groomed_doc1
         + IDF_cat * TF_cat_doc1;
     double calcrel_doc2 = IDF_fluffy * TF_fluffy_doc2 + IDF_groomed * TF_groomed_doc2
         + IDF_cat * TF_cat_doc2;
-    //—равним полученные результаты
+    //Compare the results
     ASSERT_EQUAL(found_docs[0].relevance, calcrel_doc0);
     ASSERT_EQUAL(found_docs[1].relevance, calcrel_doc1);
     ASSERT_EQUAL(found_docs[2].relevance, calcrel_doc2);
 }
 
-// ‘ункци€ TestSearchServer €вл€етс€ точкой входа дл€ запуска тестов
+// The TestSearchServer function is the entry point for running tests
 void TestSearchServer() {
     TestExcludeStopWordsFromAddedDocumentContent();
     TestExcludeDocumentsFromResultWithMinusWords();
