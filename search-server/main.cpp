@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <numeric>
 #include <cmath>
 #include <iostream>
 #include <map>
@@ -85,10 +86,12 @@ public:
 
 	template <typename StringContainer>
 	explicit SearchServer(const StringContainer& stop_words)
-		: stop_words_(MakeUniqueNonEmptyStrings(stop_words)) {
+		: stop_words_(MakeUniqueNonEmptyStrings(stop_words))
+		, order(0) {
 		for (const auto& word : stop_words) {
 			if (!IsValidWord(word)) {
-				throw invalid_argument("one of the stop words contains invalid characters");
+				const string str = "stop word: \""s + word + "\" contains invalid characters"s;
+				throw invalid_argument(str);
 			}
 		}
 	}
@@ -97,9 +100,6 @@ public:
 		: SearchServer(
 			SplitIntoWords(stop_words_text))  // Invoke delegating constructor from string container
 	{
-		if (!IsValidWord(stop_words_text)) {
-			throw invalid_argument("the set of passed stop words contains invalid characters"s);
-		}
 	}
 
 	void AddDocument(int document_id, const string& document, DocumentStatus status,
@@ -107,39 +107,29 @@ public:
 		if (document_id < 0) {
 			throw invalid_argument("An attempt to add a document with a negative id"s);
 		}
-		if (documents_.count(document_id) > 0) {
+		if (doc_adding_ids.count(document_id) > 0) {
 			throw invalid_argument("An attempt to add a document with an already existing id"s);
 		}
-		if (!IsValidWord(document) || CheckDoubleMinus(document) || CheckOneMinus(document)) {
-			throw invalid_argument("Document text contains invalid characters");
-		}
+		doc_adding_ids.insert(document_id);
+		doc_id_order[order] = document_id;
 		const vector<string> words = SplitIntoWordsNoStop(document);
-
 		const double inv_word_count = 1.0 / words.size();
 		for (const string& word : words) {
 			word_to_document_freqs_[word][document_id] += inv_word_count;
 		}
 		documents_.emplace(document_id, DocumentData{ ComputeAverageRating(ratings), status });
+		++order;
 	}
 
 	template <typename DocumentPredicate>
 	vector<Document> FindTopDocuments(const string& raw_query,
 		DocumentPredicate document_predicate) const {
-		if (!IsValidWord(raw_query)) {
-			throw invalid_argument("Search query contains invalid characters"s);
-		}
-		if (CheckDoubleMinus(raw_query)) {
-			throw invalid_argument("Search query contains double minus"s);
-		}
-		if (CheckOneMinus(raw_query)) {
-			throw invalid_argument("Search query does not have a word after minus"s);
-		}
 		const Query query = ParseQuery(raw_query);
 		auto matched_documents = FindAllDocuments(query, document_predicate);
-
+		const double EPSILON = 1e-6;
 		sort(matched_documents.begin(), matched_documents.end(),
-			[](const Document& lhs, const Document& rhs) {
-				if (abs(lhs.relevance - rhs.relevance) < 1e-6) {
+			[EPSILON](const Document& lhs, const Document& rhs) {
+				if (abs(lhs.relevance - rhs.relevance) < EPSILON) {
 					return lhs.rating > rhs.rating;
 				}
 				else {
@@ -169,15 +159,6 @@ public:
 
 	tuple<vector<string>, DocumentStatus> MatchDocument(const string& raw_query,
 		int document_id) const {
-		if (!IsValidWord(raw_query)) {
-			throw invalid_argument("Search query contains invalid characters"s);
-		}
-		if (CheckDoubleMinus(raw_query)) {
-			throw invalid_argument("Search query contains double minus"s);
-		}
-		if (CheckOneMinus(raw_query)) {
-			throw invalid_argument("Search query does not have a word after minus"s);
-		}
 		const Query query = ParseQuery(raw_query);
 		vector<string> matched_words;
 		for (const string& word : query.plus_words) {
@@ -205,19 +186,7 @@ public:
 		if (index > GetDocumentCount() || index < 0) {
 			throw out_of_range("Index of document is out of range");
 		}
-		int nomer = 0;
-		int res = 0;
-		for (const auto& [doc_id, _] : documents_) {
-			if (nomer == index) {
-				res = doc_id;
-				break;
-			}
-			else
-			{
-				++nomer;
-			}
-		}
-		return res;
+		return (doc_id_order.at(index));
 	}
 
 private:
@@ -228,7 +197,9 @@ private:
 	const set<string> stop_words_;
 	map<string, map<int, double>> word_to_document_freqs_;
 	map<int, DocumentData> documents_;
-
+	set<int> doc_adding_ids;
+	map<int, int> doc_id_order;
+	int order;//sequence number of document to be added
 	bool IsStopWord(const string& word) const {
 		return stop_words_.count(word) > 0;
 	}
@@ -246,15 +217,13 @@ private:
 
 	bool CheckOneMinus(const string& word) const {
 		int word_len = word.size();
-		for (int i = 1; i < word_len - 1; ++i) {
-			//check minus without word and
-			//at the end of the word and
-			//at the end of the string
-			if ((word[i - 1] == ' ' && word[i] == '-' && word[i + 1] == ' ') ||
-				(word[i - 1] != ' ' && word[i] == '-' && word[i + 1] == ' ') ||
-				word[word_len - 1] == '-') {
-				return true;
-			}
+		//check one minus without word
+		if (word_len == 1 && word[0] == '-') {
+			return true;
+		}
+		//check minus at the end of the word
+		if (word_len > 1 && word[word_len - 1] == '-') {
+			return true;
 		}
 		return false;
 	}
@@ -262,6 +231,24 @@ private:
 	vector<string> SplitIntoWordsNoStop(const string& text) const {
 		vector<string> words;
 		for (const string& word : SplitIntoWords(text)) {
+			cout << "Word: \""s << word << "\""s << endl;
+			if (!IsValidWord(word)) {
+				const string message = "Word: \"" + word + "\" contains invalid characters";
+				throw invalid_argument(message);
+			}
+			if (CheckDoubleMinus(word)) {
+				const string message = "Word: \"" + word + "\" contains double minus";
+				throw invalid_argument(message);
+			}
+			if (CheckOneMinus(word)) {
+				if (word.size() == 1) {
+					const string message = "There is a minus without any word"s;
+					throw invalid_argument(message);
+				}
+				const string message = "Word: \"" + word + "\" contains extra minus";
+				throw invalid_argument(message);
+			}
+
 			if (!IsStopWord(word)) {
 				words.push_back(word);
 			}
@@ -280,10 +267,8 @@ private:
 		if (ratings.empty()) {
 			return 0;
 		}
-		int rating_sum = 0;
-		for (const int rating : ratings) {
-			rating_sum += rating;
-		}
+
+		int rating_sum = accumulate(ratings.begin(), ratings.end(), 0);
 		return rating_sum / static_cast<int>(ratings.size());
 	}
 
@@ -295,6 +280,20 @@ private:
 
 	QueryWord ParseQueryWord(string text) const {
 		bool is_minus = false;
+		if (!IsValidWord(text)) {
+			throw invalid_argument("Word: \""s + text + "\" in search query contains invalid characters"s);
+		}
+		if (CheckDoubleMinus(text)) {
+			throw invalid_argument("Word: \""s + text + "\" in search query contains double minus"s);
+		}
+		if (CheckOneMinus(text)) {
+			if (text.size() == 1) {
+				const string message = "There is no word after minus in search query"s;
+				throw invalid_argument(message);
+			}
+			const string message = "There is an extra minus in search query. Word:\""s + text + "\""s;
+			throw invalid_argument(message);
+		}
 		// Word shouldn't be empty
 		if (text[0] == '-') {
 			is_minus = true;
