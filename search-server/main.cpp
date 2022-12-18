@@ -86,8 +86,7 @@ public:
 
 	template <typename StringContainer>
 	explicit SearchServer(const StringContainer& stop_words)
-		: stop_words_(MakeUniqueNonEmptyStrings(stop_words))
-		, order(0) {
+		: stop_words_(MakeUniqueNonEmptyStrings(stop_words)) {
 		for (const auto& word : stop_words) {
 			if (!IsValidWord(word)) {
 				const string str = "stop word: \""s + word + "\" contains invalid characters"s;
@@ -107,29 +106,28 @@ public:
 		if (document_id < 0) {
 			throw invalid_argument("An attempt to add a document with a negative id"s);
 		}
-		if (doc_adding_ids.count(document_id) > 0) {
+		if (documents_.count(document_id) > 0) {
 			throw invalid_argument("An attempt to add a document with an already existing id"s);
 		}
-		doc_adding_ids.insert(document_id);
-		doc_id_order[order] = document_id;
+		doc_id_order.push_back(document_id);
 		const vector<string> words = SplitIntoWordsNoStop(document);
 		const double inv_word_count = 1.0 / words.size();
 		for (const string& word : words) {
 			word_to_document_freqs_[word][document_id] += inv_word_count;
 		}
 		documents_.emplace(document_id, DocumentData{ ComputeAverageRating(ratings), status });
-		++order;
 	}
 
 	template <typename DocumentPredicate>
 	vector<Document> FindTopDocuments(const string& raw_query,
 		DocumentPredicate document_predicate) const {
+		const double epsilon = 1e-6;
 		const Query query = ParseQuery(raw_query);
 		auto matched_documents = FindAllDocuments(query, document_predicate);
-		const double EPSILON = 1e-6;
+
 		sort(matched_documents.begin(), matched_documents.end(),
-			[EPSILON](const Document& lhs, const Document& rhs) {
-				if (abs(lhs.relevance - rhs.relevance) < EPSILON) {
+			[epsilon](const Document& lhs, const Document& rhs) {
+				if (abs(lhs.relevance - rhs.relevance) < epsilon) {
 					return lhs.rating > rhs.rating;
 				}
 				else {
@@ -182,10 +180,6 @@ public:
 	}
 
 	int GetDocumentId(int index) const {
-
-		if (index > GetDocumentCount() || index < 0) {
-			throw out_of_range("Index of document is out of range");
-		}
 		return (doc_id_order.at(index));
 	}
 
@@ -197,9 +191,8 @@ private:
 	const set<string> stop_words_;
 	map<string, map<int, double>> word_to_document_freqs_;
 	map<int, DocumentData> documents_;
-	set<int> doc_adding_ids;
-	map<int, int> doc_id_order;
-	int order;//sequence number of document to be added
+	vector<int> doc_id_order;
+
 	bool IsStopWord(const string& word) const {
 		return stop_words_.count(word) > 0;
 	}
@@ -236,19 +229,6 @@ private:
 				const string message = "Word: \"" + word + "\" contains invalid characters";
 				throw invalid_argument(message);
 			}
-			if (CheckDoubleMinus(word)) {
-				const string message = "Word: \"" + word + "\" contains double minus";
-				throw invalid_argument(message);
-			}
-			if (CheckOneMinus(word)) {
-				if (word.size() == 1) {
-					const string message = "There is a minus without any word"s;
-					throw invalid_argument(message);
-				}
-				const string message = "Word: \"" + word + "\" contains extra minus";
-				throw invalid_argument(message);
-			}
-
 			if (!IsStopWord(word)) {
 				words.push_back(word);
 			}
@@ -267,7 +247,6 @@ private:
 		if (ratings.empty()) {
 			return 0;
 		}
-
 		int rating_sum = accumulate(ratings.begin(), ratings.end(), 0);
 		return rating_sum / static_cast<int>(ratings.size());
 	}
