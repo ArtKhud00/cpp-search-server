@@ -25,11 +25,11 @@ public:
 private:
     struct QueryResult {
         std::string query_words;
-        bool isFoundsmth;
+        bool is_found;
     };
     std::deque<QueryResult> requests_;
     const static int min_in_day_ = 1440;
-    int zerores_count;
+    int zero_result_count;
     const SearchServer& server;
 
     void AddRequest(std::vector<Document>& docs);

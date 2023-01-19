@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <iostream>
+#include <cassert>
 #include "document.h"
 
 using namespace std::string_literals;
@@ -46,22 +47,22 @@ std::ostream& operator<< (std::ostream& out, const IteratorRange<ToPrint>& data)
     return out;
 }
 
-template <typename pager>
+template <typename _Iterator>
 class Paginator {
     // тело класса
 public:
 
-    Paginator(pager begin, pager end, size_t size) : page_size(size) {
-
+    Paginator(_Iterator begin, _Iterator end, size_t size) : page_size(size) {
+        assert(end >= begin && page_size > 0);
         auto page_dist = distance(begin, end);
         auto page_begin = begin;
         for (int i = 0; i < page_dist / page_size; ++i)
         {
-            pages_.push_back(IteratorRange<pager>(page_begin, next(page_begin, size)));
+            pages_.push_back(IteratorRange<_Iterator>(page_begin, next(page_begin, size)));
             advance(page_begin, size);
         }
         if (page_begin != end) {
-            pages_.push_back(IteratorRange<pager>(page_begin, end));
+            pages_.push_back(IteratorRange<_Iterator>(page_begin, end));
         }
     }
 
@@ -79,7 +80,7 @@ public:
 
 private:
     int page_size;
-    std::vector <IteratorRange<pager>> pages_;
+    std::vector <IteratorRange<_Iterator>> pages_;
 };
 
 template <typename Container>

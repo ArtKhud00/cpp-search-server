@@ -14,15 +14,15 @@ int main() {
     search_server.AddDocument(3, "big cat fancy collar "s, DocumentStatus::ACTUAL, { 1, 2, 8 });
     search_server.AddDocument(4, "big dog sparrow Eugene"s, DocumentStatus::ACTUAL, { 1, 3, 2 });
     search_server.AddDocument(5, "big dog sparrow Vasiliy"s, DocumentStatus::ACTUAL, { 1, 1, 1 });
-    // 1439 запросов с нулевым результатом
+    // 1439 requests with zero result
     for (int i = 0; i < 1439; ++i) {
         request_queue.AddFindRequest("empty request"s);
     }
-    // все еще 1439 запросов с нулевым результатом
+    // still 1439 requests with zero result
     request_queue.AddFindRequest("curly dog"s);
-    // новые сутки, первый запрос удален, 1438 запросов с нулевым результатом
+    // new day, first request deleted, 1438 requests with zero result
     request_queue.AddFindRequest("big collar"s);
-    // первый запрос удален, 1437 запросов с нулевым результатом
+    // first request deleted, 1437 requests with zero result
     request_queue.AddFindRequest("sparrow"s);
     std::cout << "Total empty requests: "s << request_queue.GetNoResultRequests() << std::endl;
     return 0;

@@ -1,6 +1,6 @@
 #include "request_queue.h"
 
-RequestQueue::RequestQueue(const SearchServer& search_server) : zerores_count(0), server(search_server) {
+RequestQueue::RequestQueue(const SearchServer& search_server) : zero_result_count(0), server(search_server) {
 }
 
 std::vector<Document> RequestQueue::AddFindRequest(const std::string& raw_query, DocumentStatus status) {
@@ -21,16 +21,16 @@ std::vector<Document> RequestQueue::AddFindRequest(const std::string& raw_query)
 
 int RequestQueue::GetNoResultRequests() const {
     // напишите реализацию
-    return zerores_count;
+    return zero_result_count;
 }
 
 void RequestQueue::AddRequest(std::vector<Document>& docs) {
     if (docs.empty()) {
-        ++zerores_count;
+        ++zero_result_count;
     }
     if (requests_.size() > min_in_day_) {
-        if (!requests_.front().isFoundsmth) {
-            --zerores_count;
+        if (!requests_.front().is_found) {
+            --zero_result_count;
         }
         requests_.pop_front();
     }
