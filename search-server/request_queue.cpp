@@ -4,7 +4,6 @@ RequestQueue::RequestQueue(const SearchServer& search_server) : zero_result_coun
 }
 
 std::vector<Document> RequestQueue::AddFindRequest(const std::string& raw_query, DocumentStatus status) {
-    // напишите реализацию
     std::vector<Document> res = server.FindTopDocuments(raw_query, status);
     requests_.push_back({ raw_query, !res.empty() });
     AddRequest(res);
@@ -12,7 +11,6 @@ std::vector<Document> RequestQueue::AddFindRequest(const std::string& raw_query,
 }
 
 std::vector<Document> RequestQueue::AddFindRequest(const std::string& raw_query) {
-    // напишите реализацию
     std::vector<Document> res = server.FindTopDocuments(raw_query, DocumentStatus::ACTUAL);
     requests_.push_back({ raw_query, !res.empty() });
     AddRequest(res);
@@ -20,7 +18,6 @@ std::vector<Document> RequestQueue::AddFindRequest(const std::string& raw_query)
 }
 
 int RequestQueue::GetNoResultRequests() const {
-    // напишите реализацию
     return zero_result_count;
 }
 
