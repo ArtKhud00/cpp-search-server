@@ -23,6 +23,7 @@
     `FindTopDocuments (query)`
     `FindTopDocuments (query,DocumentStatus)`
     `FindTopDocuments (query,DocumentPredicate)`
+    
  - `GetDocumentCount()` - возвращает количество документов на сервере поиска
  - `tuple<std::vector<std::string_view>, DocumentStatus> MatchDocument(raw_query, document_id)` - Возвращает: Первый объект — это вектор слов запроса, которые были найдены в документе `document_id`, а второй объект это статус документа
  - `map<string, double> GetWordFrequencies(document_id)` - Метод получения частот слов по идентификатору документа
