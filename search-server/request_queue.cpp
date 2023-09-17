@@ -11,7 +11,8 @@ std::vector<Document> RequestQueue::AddFindRequest(const std::string& raw_query,
 }
 
 std::vector<Document> RequestQueue::AddFindRequest(const std::string& raw_query) {
-    std::vector<Document> res = server.FindTopDocuments(raw_query, DocumentStatus::ACTUAL);
+    //std::vector<Document> res = server.FindTopDocuments(raw_query, DocumentStatus::ACTUAL);
+	std::vector<Document> res = server.FindTopDocuments(raw_query);
     requests_.push_back({ raw_query, !res.empty() });
     AddRequest(res);
     return res;

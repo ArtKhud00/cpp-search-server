@@ -33,20 +33,24 @@ public:
     std::vector<Document> FindTopDocuments(std::string_view raw_query,
         DocumentPredicate document_predicate) const;
 
-    std::vector<Document> FindTopDocuments(std::string_view raw_query, DocumentStatus status) const;
+    std::vector<Document> FindTopDocuments(std::string_view raw_query, DocumentStatus status) const {
+        return FindTopDocuments(std::execution::seq, raw_query, status);
+    }
 
-    std::vector<Document> FindTopDocuments(std::string_view raw_query) const;
+    std::vector<Document> FindTopDocuments(std::string_view raw_query) const {
+        return FindTopDocuments(std::execution::seq, raw_query);
+    }
 
     template <typename DocumentPredicate, typename Policy>
-    std::vector<Document> FindTopDocuments(Policy& policy, std::string_view raw_query,
+    std::vector<Document> FindTopDocuments(const Policy& policy, std::string_view raw_query,
         DocumentPredicate document_predicate) const;
 
     template <typename Policy>
-    std::vector<Document> FindTopDocuments(Policy policy,
+    std::vector<Document> FindTopDocuments(const Policy& policy,
         std::string_view raw_query, DocumentStatus status) const;
 
     template <typename Policy>
-    std::vector<Document> FindTopDocuments(Policy policy, std::string_view raw_query) const;
+    std::vector<Document> FindTopDocuments(const Policy& policy, std::string_view raw_query) const;
 
     int GetDocumentCount() const;
 
@@ -141,7 +145,7 @@ std::vector<Document> SearchServer::FindTopDocuments(std::string_view raw_query,
 }
 
 template <typename DocumentPredicate, typename Policy>
-std::vector<Document> SearchServer::FindTopDocuments(Policy& policy, std::string_view raw_query,
+std::vector<Document> SearchServer::FindTopDocuments(const Policy& policy, std::string_view raw_query,
     DocumentPredicate document_predicate) const {
     const auto query = ParseQuery(raw_query, true);
     const double epsilon = 1e-6;
@@ -163,7 +167,7 @@ std::vector<Document> SearchServer::FindTopDocuments(Policy& policy, std::string
 }
 
 template <typename Policy>
-std::vector<Document> SearchServer::FindTopDocuments(Policy policy,
+std::vector<Document> SearchServer::FindTopDocuments(const Policy& policy,
     std::string_view raw_query, DocumentStatus status) const {
     return FindTopDocuments(
         policy, raw_query, [status](int document_id, DocumentStatus document_status, int rating) {
@@ -172,9 +176,10 @@ std::vector<Document> SearchServer::FindTopDocuments(Policy policy,
 }
 
 template <typename Policy>
-std::vector<Document> SearchServer::FindTopDocuments(Policy policy, std::string_view raw_query) const {
+std::vector<Document> SearchServer::FindTopDocuments(const Policy& policy, std::string_view raw_query) const {
     return FindTopDocuments(policy, raw_query, DocumentStatus::ACTUAL);
 }
+
 
 template <typename DocumentPredicate>
 std::vector<Document> SearchServer::FindAllDocuments(const Query& query,

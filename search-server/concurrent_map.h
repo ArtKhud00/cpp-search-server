@@ -8,7 +8,7 @@
 
 #include "log_duration.h"
 
-using namespace std::string_literals;
+using namespace std::literals;
 
 template<typename Key, typename Value>
 class ConcurrentMap {
@@ -19,7 +19,7 @@ private:
     };
 
 public:
-    static_assert(std::is_integral_v<Key>, "ConcurrentMap supports only integer keys"s);
+    static_assert(std::is_integral_v<Key>, "ConcurrentMap supports only integer keys");
 
     struct Access {
         std::lock_guard<std::mutex> guard;
