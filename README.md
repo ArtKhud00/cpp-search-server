@@ -76,3 +76,8 @@ cmake .. -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
 ```
 ./search_server.exe
 ```
+## Системные требования
+ - С++17
+ - GCC(MinGW-w64) 11.2.2
+## Используемые технологии
+ - CMake 3.22.0
